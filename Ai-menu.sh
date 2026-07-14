@@ -31,31 +31,33 @@ orange=$(tput setaf 3)
 bold=$(tput bold)
 # ============================================================
 
-# -------------------- repo_update function --------------------
+# -------------------- repo_update function (FIXED) --------------------
 function repo_update() {
     clear; reset
     # Decode and run the git update animation (provided by user)
-    source <(echo 'dHRlIC0tZnJhbWUtcmF0ZSA2NjYgLWkgJFBSRUZJWC9zaGFyZS9pZ2hvc3QvZ2l0LnVwZGF0ZSAtLXJhbmRvbS1lZmZlY3QgLS1leGNsdWRlLWVmZmVjdHMgbWF0cml4' | base64 -d)
+    source <(echo 'dG9pbGV0IC1mIHBhZ2dhICJVcGRhdGUi' | base64 -d)
     set -euo pipefail
-    REPO_URL="https://github.com/MrGhostOfficial/ANDroidPAY.git"
-    TARGET="$HOME/ANDroidPAY"
     
-    mkdir -p "$TARGET"
-    echo -e "${blue}Target contents folder kept removed inside${redlite}:${red} $TARGET${finished}"
-    rm -rf "$TARGET"/* "$TARGET"/.[!.]* "$TARGET"/..?* 2>/dev/null || true
+    local script_url="https://raw.githubusercontent.com/MrGhostOfficial/MrGhostOfficial/master/Ai-menu.sh"
+    local target_script="$(realpath "$0")"   # absolute path to current script
+    local temp_script="$(mktemp)"
     
-    echo -e "${green}Cloning fresh repository${redlite}...${finished}"
-    TEMP_DIR=$(mktemp -d)
-    git clone "$REPO_URL" "$TEMP_DIR"
-    shopt -s dotglob
-    mv "$TEMP_DIR"/* "$TARGET"/ 2>/dev/null || true
-    rm -rf "$TEMP_DIR"
-    echo -e "${green}✓ Success${red}! ${cyan}Files are now inside $TARGET ${redlite}(${yellowlite}folder preserved${redlite})${finished}\n"
-    chmod +x ANDroidPAY
-    ls "$TARGET"
-    echo -e "${green}Press Enter to return to menu...${finished}"
-    read -r
-    exit 0
+    echo -e "${blue}Updating Ai-menu.sh...${finished}"
+    echo -e "${green}Downloading latest version from${redlite}: ${script_url}${finished}"
+    
+    if curl -sSL "$script_url" -o "$temp_script"; then
+        chmod +x "$temp_script"
+        # Replace the current script with the new one
+        mv -f "$temp_script" "$target_script"
+        echo -e "${green}✓ Update successful! Restarting menu...${finished}"
+        sleep 1
+        exec "$target_script"   # replaces current process with new script
+    else
+        echo -e "${red}[!] Failed to download update. Please check your internet connection.${finished}"
+        rm -f "$temp_script"
+        read -n 1 -s -r -p "Press any key to return to menu..."
+        # Return to main loop (no exec)
+    fi
 }
 
 # -------------------- Initialize Conda --------------------
@@ -80,12 +82,12 @@ while true; do
     echo -e "      Android AI Toolkit Menu"
     echo -e "======================================${finished}"
     echo
-    echo -e "${green}1)${finished} Start ComfyUI ${yellow}(termux-wake-lock)${finished}"
+    echo -e "${green}1)${finished} Start ComfyUI${finished}"
     echo -e "${green}2)${finished} Stop ComfyUI"
     echo -e "${green}3)${finished} AI Doctor"
     echo -e "${green}4)${finished} Update ComfyUI"
-    echo -e "${green}5)${finished} Latest Update ${yellow}(ANDroidPAY)${finished}"
-    echo -e "${green}0)${finished} Exit ${yellow}(termux-wake-unlock)${finished}"
+    echo -e "${green}5)${finished} Update Ai-menu.sh${finished}"
+    echo -e "${green}0)${finished} Exit tool${finished}"
     echo
     read -rp "$(echo -e ${blue}"Select (0-5): "${finished})" choice
 
@@ -178,9 +180,9 @@ PY
             deactivate_conda
             ;;
         5)
-            echo -e "${green}[+] Running Latest Update for ANDroidPAY...${finished}"
+            echo -e "${green}[+] Running Latest Update for Ai-menu.sh...${finished}"
             repo_update
-            # repo_update exits, so we don't need to handle further
+            # repo_update will either exec (restart) or return to loop
             ;;
         0)
             echo
